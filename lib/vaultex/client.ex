@@ -10,7 +10,7 @@ defmodule Vaultex.Client do
   @version "v1"
 
   def start_link() do
-    GenServer.start_link(__MODULE__, %{progress: "starting"}, name: :vaultex)
+    GenServer.start_link(__MODULE__, %{progress: "starting"})
   end
 
   def init(state) do
@@ -38,8 +38,8 @@ defmodule Vaultex.Client do
     {:ok, :authenticated}
     ```
   """
-  def auth(method, credentials) do
-    GenServer.call(:vaultex, {:auth, method, credentials})
+  def auth(pid, method, credentials) do
+    GenServer.call(pid, {:auth, method, credentials})
   end
 
   @doc """
@@ -64,18 +64,18 @@ defmodule Vaultex.Client do
     ```
 
   """
-  def read(key, auth_method, credentials) do
-    response = read(key)
+  def read(pid, key, auth_method, credentials) do
+    response = read(pid, key)
     case response do
       {:ok, _} -> response
       {:error, _} ->
-        with {:ok, _} <- auth(auth_method, credentials),
-          do: read(key)
+        with {:ok, _} <- auth(pid, auth_method, credentials),
+          do: read(pid, key)
     end
   end
 
-  defp read(key) do
-    GenServer.call(:vaultex, {:read, key})
+  defp read(pid, key) do
+    GenServer.call(pid, {:read, key})
   end
 
   @doc """
@@ -94,19 +94,19 @@ defmodule Vaultex.Client do
     :ok
     ```
   """
-  def write(key, value, auth_method, credentials) do
-    response = write(key, value)
+  def write(pid, key, value, auth_method, credentials) do
+    response = write(pid, key, value)
     case response do
       :ok -> response
       {:ok, response} -> {:ok, response}
       {:error, _} ->
-        with {:ok, _} <- auth(auth_method, credentials),
-          do: write(key, value)
+        with {:ok, _} <- auth(pid, auth_method, credentials),
+          do: write(pid, key, value)
     end
   end
 
-  defp write(key, value) do
-    GenServer.call(:vaultex, {:write, key, value})
+  defp write(pid, key, value) do
+    GenServer.call(pid, {:write, key, value})
   end
 
   def handle_call({:read, key}, _from, state) do
